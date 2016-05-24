@@ -588,17 +588,41 @@ static void create_volume_ok(GtkWidget *button, file_req_assoc *assoc)
 // "Add Volume" button clicked
 static void cb_add_volume(...)
 {
+#if GTK_CHECK_VERSION(2,4,0)
+	GtkWidget *req = gtk_file_chooser_dialog_new(GetString(STR_ADD_VOLUME_TITLE), GTK_WINDOW(win),
+		GTK_FILE_CHOOSER_ACTION_OPEN,
+		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+		GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
+		NULL);
+	
+	if (gtk_dialog_run( GTK_DIALOG(req) ) == GTK_RESPONSE_ACCEPT)
+	{
+		gchar *file;
+		file = gtk_file_chooser_get_filename ( GTK_FILE_CHOOSER(req) );
+		gtk_clist_append(GTK_CLIST(volume_list), &file);
+	}
+	gtk_widget_destroy(req);
+#else
 	GtkWidget *req = gtk_file_selection_new(GetString(STR_ADD_VOLUME_TITLE));
 	gtk_signal_connect_object(GTK_OBJECT(req), "delete_event", GTK_SIGNAL_FUNC(gtk_widget_destroy), GTK_OBJECT(req));
 	gtk_signal_connect(GTK_OBJECT(GTK_FILE_SELECTION(req)->ok_button), "clicked", GTK_SIGNAL_FUNC(add_volume_ok), new file_req_assoc(req, NULL));
 	gtk_signal_connect_object(GTK_OBJECT(GTK_FILE_SELECTION(req)->cancel_button), "clicked", GTK_SIGNAL_FUNC(gtk_widget_destroy), GTK_OBJECT(req));
 	gtk_widget_show(req);
+#endif
 }
 
 // "Create Hardfile" button clicked
 static void cb_create_volume(...)
 {
+#if GTK_CHECK_VERSION(2,4,0)
+	GtkWidget *req = gtk_file_chooser_dialog_new(GetString(STR_CREATE_VOLUME_TITLE), GTK_WINDOW(win),
+		GTK_FILE_CHOOSER_ACTION_SAVE,
+		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+		GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
+		NULL);
+#else
 	GtkWidget *req = gtk_file_selection_new(GetString(STR_CREATE_VOLUME_TITLE));
+#endif
 
 	GtkWidget *box = gtk_hbox_new(FALSE, 4);
 	gtk_widget_show(box);
@@ -611,12 +635,37 @@ static void cb_create_volume(...)
 	gtk_entry_set_text(GTK_ENTRY(entry), str);
 	gtk_box_pack_start(GTK_BOX(box), label, FALSE, FALSE, 0);
 	gtk_box_pack_start(GTK_BOX(box), entry, FALSE, FALSE, 0);
+
+#if GTK_CHECK_VERSION(2,4,0)
+	gtk_file_chooser_set_extra_widget( GTK_FILE_CHOOSER(req), box );
+	
+	if (gtk_dialog_run( GTK_DIALOG(req) ) == GTK_RESPONSE_ACCEPT)
+	{
+		gchar *file = (gchar *)gtk_file_chooser_get_filename ( GTK_FILE_CHOOSER(req) );
+
+		const gchar *str = gtk_entry_get_text(GTK_ENTRY(entry));
+		int size = atoi(str);
+
+		int fd = open( file, O_WRONLY | O_CREAT | O_TRUNC,
+			S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH );
+		if ( fd >= 0 )
+		{
+			int ret = ftruncate( fd, size * 1024 * 1024 );
+			close( fd );
+			
+			if (ret == 0)
+				gtk_clist_append(GTK_CLIST(volume_list), &file);
+		}
+	}
+	gtk_widget_destroy(req);
+#else
 	gtk_box_pack_start(GTK_BOX(GTK_FILE_SELECTION(req)->main_vbox), box, FALSE, FALSE, 0);
 
 	gtk_signal_connect_object(GTK_OBJECT(req), "delete_event", GTK_SIGNAL_FUNC(gtk_widget_destroy), GTK_OBJECT(req));
 	gtk_signal_connect(GTK_OBJECT(GTK_FILE_SELECTION(req)->ok_button), "clicked", GTK_SIGNAL_FUNC(create_volume_ok), new file_req_assoc(req, entry));
 	gtk_signal_connect_object(GTK_OBJECT(GTK_FILE_SELECTION(req)->cancel_button), "clicked", GTK_SIGNAL_FUNC(gtk_widget_destroy), GTK_OBJECT(req));
 	gtk_widget_show(req);
+#endif
 }
 
 // "Remove Volume" button clicked
