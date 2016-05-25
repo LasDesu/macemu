@@ -589,19 +589,35 @@ static void create_volume_ok(GtkWidget *button, file_req_assoc *assoc)
 static void cb_add_volume(...)
 {
 #if GTK_CHECK_VERSION(2,4,0)
-	GtkWidget *req = gtk_file_chooser_dialog_new(GetString(STR_ADD_VOLUME_TITLE), GTK_WINDOW(win),
+	GtkWidget *req = gtk_file_chooser_dialog_new( GetString(STR_ADD_VOLUME_TITLE), GTK_WINDOW(win),
 		GTK_FILE_CHOOSER_ACTION_OPEN,
 		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 		GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
-		NULL);
+		NULL );
+	gtk_file_chooser_set_select_multiple( GTK_FILE_CHOOSER(req), TRUE );
 	
-	if (gtk_dialog_run( GTK_DIALOG(req) ) == GTK_RESPONSE_ACCEPT)
+	if ( gtk_dialog_run( GTK_DIALOG(req) ) == GTK_RESPONSE_ACCEPT )
 	{
-		gchar *file;
-		file = gtk_file_chooser_get_filename ( GTK_FILE_CHOOSER(req) );
-		gtk_clist_append(GTK_CLIST(volume_list), &file);
+		GSList *flist = gtk_file_chooser_get_uris( GTK_FILE_CHOOSER(req) );
+		GSList *el = flist;
+		
+		while ( el )
+		{
+			if ( el->data )
+			{
+				gchar *file = g_filename_from_uri( (const gchar *)el->data, NULL, NULL );
+				
+				if ( file )
+					gtk_clist_append( GTK_CLIST(volume_list), &file );
+				
+				free( el->data );
+			}
+			
+			el = el->next;
+		}
+		g_slist_free( flist );
 	}
-	gtk_widget_destroy(req);
+	gtk_widget_destroy( req );
 #else
 	GtkWidget *req = gtk_file_selection_new(GetString(STR_ADD_VOLUME_TITLE));
 	gtk_signal_connect_object(GTK_OBJECT(req), "delete_event", GTK_SIGNAL_FUNC(gtk_widget_destroy), GTK_OBJECT(req));
@@ -615,11 +631,11 @@ static void cb_add_volume(...)
 static void cb_create_volume(...)
 {
 #if GTK_CHECK_VERSION(2,4,0)
-	GtkWidget *req = gtk_file_chooser_dialog_new(GetString(STR_CREATE_VOLUME_TITLE), GTK_WINDOW(win),
+	GtkWidget *req = gtk_file_chooser_dialog_new( GetString(STR_CREATE_VOLUME_TITLE), GTK_WINDOW(win),
 		GTK_FILE_CHOOSER_ACTION_SAVE,
 		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 		GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
-		NULL);
+		NULL );
 #else
 	GtkWidget *req = gtk_file_selection_new(GetString(STR_CREATE_VOLUME_TITLE));
 #endif
@@ -639,7 +655,7 @@ static void cb_create_volume(...)
 #if GTK_CHECK_VERSION(2,4,0)
 	gtk_file_chooser_set_extra_widget( GTK_FILE_CHOOSER(req), box );
 	
-	if (gtk_dialog_run( GTK_DIALOG(req) ) == GTK_RESPONSE_ACCEPT)
+	if ( gtk_dialog_run( GTK_DIALOG(req) ) == GTK_RESPONSE_ACCEPT )
 	{
 		gchar *file = (gchar *)gtk_file_chooser_get_filename ( GTK_FILE_CHOOSER(req) );
 
@@ -654,7 +670,7 @@ static void cb_create_volume(...)
 			close( fd );
 			
 			if (ret == 0)
-				gtk_clist_append(GTK_CLIST(volume_list), &file);
+				gtk_clist_append( GTK_CLIST(volume_list), &file );
 		}
 	}
 	gtk_widget_destroy(req);
