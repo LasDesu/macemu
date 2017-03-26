@@ -494,6 +494,8 @@ static GtkItemFactoryEntry menu_items[] = {
 
 bool PrefsEditor(void)
 {
+	start_clicked = false;
+	
 	// Create window
 	win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(win), GetString(STR_PREFS_TITLE));
@@ -1791,17 +1793,21 @@ int main(int argc, char *argv[])
 	gtk_init(&argc, &argv);
 #endif
 
-	// Read preferences
-	PrefsInit(NULL, argc, argv);
+	while ( 1 )
+	{
+		// Read preferences
+		PrefsInit(NULL, argc, argv);
 
-	// Show preferences editor
-	bool start = PrefsEditor();
+		// Show preferences editor
+		bool start = PrefsEditor();
 
-	// Exit preferences
-	PrefsExit();
+		// Exit preferences
+		PrefsExit();
 
-	// Transfer control to the executable
-	if (start) {
+		// Transfer control to the executable
+		if ( !start )
+			return 0;
+
 		char gui_connection_path[64];
 		sprintf(gui_connection_path, "/org/BasiliskII/GUI/%d", getpid());
 
@@ -1821,7 +1827,7 @@ int main(int argc, char *argv[])
 		char *p;
 		strcpy(g_app_path, argv[0]);
 		if ((p = strstr(g_app_path, "BasiliskIIGUI.app/Contents/MacOS")) != NULL) {
-		    strcpy(p, "BasiliskII.app/Contents/MacOS/BasiliskII");
+			strcpy(p, "BasiliskII.app/Contents/MacOS/BasiliskII");
 			if (access(g_app_path, X_OK) < 0) {
 				char str[256];
 				sprintf(str, GetString(STR_NO_B2_EXE_FOUND), g_app_path, strerror(errno));
@@ -1885,7 +1891,6 @@ int main(int argc, char *argv[])
 		}
 
 		rpc_exit(g_gui_connection);
-		return 0;
 	}
 
 	return 0;
